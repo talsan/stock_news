@@ -23,11 +23,11 @@ iex_api.get_companyinfo_and_save(list_of_tickers=r1000_ticker_list,
 r1000_info_iex = iex_api.load_company_info()
 
 # for each ticker search kg
-diffbot_api.search_entityid_and_save(list_of_tickers=r1000_ticker_list,
-                                     save_to_dir=config.Diffbot.KG_ORG_OUTPUT_DIR,
-                                     update_existing=False)
+diffbot_api.search_org_and_save(list_of_tickers=r1000_ticker_list,
+                                save_to_dir=config.Diffbot.KG_ORG_OUTPUT_DIR,
+                                update_existing=False)
 # load diffbot company info from local dir
-r1000_info = diffbot_api.load_company_info()
+r1000_info = diffbot_api.load_org_info()
 
 # test = iex_api.get_company_info(ticker)
 

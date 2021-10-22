@@ -7,38 +7,41 @@ from urllib3.util.retry import Retry
 from datetime import datetime
 import json
 import os
+from utils import s3_helpers
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 s = requests.Session()
-retries = Retry(total=5, backoff_factor=1, status_forcelist=[400, 422, 500])
+retries = Retry(total=10, backoff_factor=2, status_forcelist=[400, 422, 429, 500])
 s.mount('http://', HTTPAdapter(max_retries=retries))
 
 
 def log_response_text(resp, *args, **kwargs):
-    logger.info(f'Got response {resp.text[0:100]}... from {resp.url}')
+    log.info(f'Got response {resp.text[0:100]}... from {resp.url}')
 
 
-def kg_search(ticker):
-    input_params = {'query': f'type:Organization isPublic:true stock.symbol:"{ticker}"',
-                    'token': config.Diffbot.DIFFBOT_KEY}
+def kg_search(query):
+    log.info(query)
+    input_params = {'query': query,
+                    'token': config.Diffbot.DIFFBOT_KEY,
+                    'size': 5000}
 
     try:
         r = s.get(url=f'{config.Diffbot.KG_ENDPOINT}',
                   params=input_params,
                   hooks={'response': [log_response_text]})
         r.raise_for_status()
-        return r.json()
+        return r
     except requests.exceptions.HTTPError as errh:
-        logger.error(f'Http Error:{errh}')
+        log.error(f'Http Error:{errh}')
     except requests.exceptions.ConnectionError as errc:
-        logger.error(f'Error Connecting:{errc}')
+        log.error(f'Error Connecting:{errc}')
     except requests.exceptions.Timeout as errt:
-        logger.error(f'Timeout Error:{errt}')
+        log.error(f'Timeout Error:{errt}')
     except requests.exceptions.RequestException as err:
-        logger.error(f'Requests Error:{err}')
+        log.error(f'Requests Error:{err}')
     except BaseException as errb:
-        logger.error(f'Base Error:{errb}')
+        log.error(f'Base Error:{errb}')
 
 
 def write_response_local(resp_json, kg_org_output_dir, ticker):
@@ -48,14 +51,14 @@ def write_response_local(resp_json, kg_org_output_dir, ticker):
             file_name = os.path.join(kg_org_output_dir, f'{ticker.upper()}__{timestamp}.json')
             with open(file_name, 'w') as f:
                 json.dump(resp_json, f, indent=4)
-            logger.info(f'Wrote response to local dir:{file_name}')
+            log.info(f'Wrote response to local dir:{file_name}')
         except BaseException as errb:
-            logger.error(f'Base Error:{errb}')
+            log.error(f'Base Error:{errb}')
     else:
-        logger.warning(f'No info: did not write {ticker} to local dir')
+        log.warning(f'No info: did not write {ticker} to local dir')
 
 
-def search_entityid_and_save(list_of_tickers, save_to_dir=None, update_existing=False):
+def search_org_and_save(list_of_tickers, save_to_dir=None, update_existing=False):
     assert (isinstance(list_of_tickers, list))
 
     if save_to_dir is None:
@@ -66,30 +69,31 @@ def search_entityid_and_save(list_of_tickers, save_to_dir=None, update_existing=
         list_of_tickers = list(set(list_of_tickers) - set(existing_tickers))
 
     for ticker in list_of_tickers:
-        company_info = kg_search(ticker)
-        write_response_local(resp_json=company_info, kg_org_output_dir=save_to_dir, ticker=ticker)
+        query = f'type:Organization isPublic:true stock.symbol:"{ticker}"'
+        company_info = kg_search(query)
+        write_response_local(resp_json=company_info.json(), kg_org_output_dir=save_to_dir, ticker=ticker)
 
 
-def load_company_info(kg_org_output_dir=None):
+def load_org_info(kg_org_output_dir=None):
     if kg_org_output_dir is None:
         kg_org_output_dir = config.Diffbot.KG_ORG_OUTPUT_DIR
 
-    company_info = []
+    org_info = []
     info_files = os.listdir(kg_org_output_dir)
     for file_name in info_files:
         with open(os.path.join(kg_org_output_dir, file_name)) as f:
             r_json = json.load(f)
 
         r_dict = {'ticker': file_name.split('__')[0]}
-        r_dict_info = unpack_json_response(r_json)
+        r_dict_info = unpack_org_json_response(r_json)
         if r_dict_info is not None:
             r_dict.update(r_dict_info)
-        company_info.append(r_dict)
+        org_info.append(r_dict)
 
-    return pd.DataFrame(company_info)
+    return pd.DataFrame(org_info)
 
 
-def unpack_json_response(r_json):
+def unpack_org_json_response(r_json):
     if r_json['results'] > 0:
         top_result = r_json['data'][0]
         output = {'id': top_result['id'],
@@ -102,6 +106,31 @@ def unpack_json_response(r_json):
                   'public': top_result['isPublic']
                   }
         return output
+
+
+def build_news_query(entity, year, news_source):
+    type_filter = 'type:Article'
+    language_filter = 'language:en'
+    org_filter = f'tags.uri:"http://diffbot.com/entity/{entity}"'
+    source_filter = f'pageUrl:"{news_source}"'
+
+    start_date = f'{int(year)-1}-12-31'
+    end_date = f'{int(year)+1}-01-01'
+    date_filter = f'date>"{start_date}" date<"{end_date}"'
+
+    sort_by = 'sortBy:date'
+
+    query = ' '.join([type_filter, language_filter, org_filter, source_filter, date_filter, sort_by])
+    return query
+
+
+def search_entity_news_and_save(entity, year, source):
+    log.info(f'processing: {entity}--{year}--{source}')
+    query = build_news_query(entity, year, source)
+    resp = kg_search(query)
+
+    s3_key = f'type=kg_raw/version=202110.0/entity={entity}/source={source}/year={year}.gz'
+    s3_helpers.write_response_s3(bucket=config.Aws.S3_NEWS_BUCKET, input_json=resp.content, key=s3_key)
 
 
 # # run diffbot enhance

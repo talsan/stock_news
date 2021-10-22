@@ -7,6 +7,7 @@ load_dotenv()
 class Aws:
     S3_REGION_NAME = 'us-west-2'
     S3_ETF_HOLDINGS_BUCKET = 'ishares'
+    S3_NEWS_BUCKET = 'diffbot-stock-news'
     S3_OBJECT_ROOT = 'https://s3.console.aws.amazon.com/s3/object'
 
     ATHENA_REGION_NAME = 'us-west-2'
