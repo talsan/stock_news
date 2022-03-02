@@ -28,7 +28,7 @@ diffbot_api.search_org_and_save(list_of_tickers=r1000_ticker_list,
                                 update_existing=False)
 # load diffbot company info from local dir
 r1000_info = diffbot_api.load_org_info()
-
+r1000_info.to_csv('./data/id_map.csv',index=False)
 # test = iex_api.get_company_info(ticker)
 
 # source news for each one

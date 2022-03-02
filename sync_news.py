@@ -24,11 +24,12 @@ def build_download_queue(overwrite=False):
     r1000_wts = s3_helpers.get_etf_holdings('IWB', '2021-09-30')
     r1000_mapped = diffbot_api.load_org_info()
     entities = r1000_mapped.merge(r1000_wts, how='inner', on='ticker') \
-        .sort_values(by='weight', ascending=False).dropna(subset=['id'])['id'].head(800).to_list()
+        .sort_values(by='weight', ascending=False).dropna(subset=['id'])['id'].to_list()
 
     # sources = pd.read_csv('./data/credible_sources/credible_sources.csv')['website'].to_list()
     sources = ['bloomberg.com', 'wsj.com', 'reuters.com', 'barrons.com', 'nytimes.com', 'cnbc.com',
-               'marketwatch.com', 'ft.com', 'finance.yahoo.com']
+               'marketwatch.com', 'ft.com', 'finance.yahoo.com', 'apnews.com', 'cnn.com',
+               'foxnews.com', 'foxbusiness.com']
     years = [str(y) for y in range(2019, 2022)]
 
     download_queue = [{'entity': x[0], 'source': x[1], 'year': x[2]}
