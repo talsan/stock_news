@@ -6,6 +6,7 @@ from utils import diffbot_api, s3_helpers
 import itertools
 import config
 from multiprocessing_logging import install_mp_handler
+import re
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +21,17 @@ def get_existing_downloads():
     return existing_downloads
 
 
+def delete_downloads_by_year(year):
+    path_prefix = f'type=kg_raw/version=202110.0/'
+    existing_downloads = s3_helpers.list_keys(Bucket=config.Aws.S3_NEWS_BUCKET, Prefix=path_prefix, full_path=True)
+    delete_keys = [key for key in existing_downloads if re.search(f'year={year}\\.gz',key) is not None]
+    deleted_keys = []
+    for i, delete_key in enumerate(delete_keys):
+        print(f'{round(100*i/len(delete_keys),2)}%')
+        deleted_keys.append(s3_helpers.delete_object(Bucket=config.Aws.S3_NEWS_BUCKET, key=delete_key))
+
+    return deleted_keys
+
 def build_download_queue(overwrite=False):
     r1000_wts = s3_helpers.get_etf_holdings('IWB', '2021-09-30')
     r1000_mapped = diffbot_api.load_org_info()
@@ -30,7 +42,7 @@ def build_download_queue(overwrite=False):
     sources = ['bloomberg.com', 'wsj.com', 'reuters.com', 'barrons.com', 'nytimes.com', 'cnbc.com',
                'marketwatch.com', 'ft.com', 'finance.yahoo.com', 'apnews.com', 'cnn.com',
                'foxnews.com', 'foxbusiness.com']
-    years = [str(y) for y in range(2019, 2022)]
+    years = [str(y) for y in range(2022, 2023)]
 
     download_queue = [{'entity': x[0], 'source': x[1], 'year': x[2]}
                       for x in list(itertools.product(entities, sources, years))]
@@ -51,7 +63,7 @@ if __name__ == "__main__":
                         format=f'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     install_mp_handler()
 
-    download_queue = build_download_queue(overwrite=False)
+    download_queue = build_download_queue(overwrite=True)
 
     for d in download_queue:
         diffbot_api.search_entity_news_and_save(**d)

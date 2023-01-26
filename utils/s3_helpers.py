@@ -54,6 +54,9 @@ def get_etf_holdings(etf_ticker, asofdate):
     return df
 
 
+def delete_object(Bucket, key):
+    return s3_client.delete_object(Bucket=Bucket,Key=key)
+
 def write_response_s3(bucket, key, input_json):
     input_file_buffer = BytesIO(input_json)
     compressed_file_buffer = BytesIO()

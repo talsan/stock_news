@@ -12,8 +12,8 @@ from utils import s3_helpers
 log = logging.getLogger(__name__)
 
 s = requests.Session()
-retries = Retry(total=10, backoff_factor=2, status_forcelist=[400, 422, 429, 500])
-s.mount('http://', HTTPAdapter(max_retries=retries))
+retries = Retry(total=5, backoff_factor=3, status_forcelist=[400, 422, 429, 500])
+s.mount('https://', HTTPAdapter(max_retries=retries))
 
 
 def log_response_text(resp, *args, **kwargs):
@@ -108,19 +108,27 @@ def unpack_org_json_response(r_json):
         return output
 
 
-def build_news_query(entity, year, news_source):
+def build_news_query(entity, year=None, news_source_filter='', text_filter=''):
     type_filter = 'type:Article'
     language_filter = 'language:en'
     org_filter = f'tags.uri:"http://diffbot.com/entity/{entity}"'
-    source_filter = f'pageUrl:"{news_source}"'
 
-    start_date = f'{int(year)-1}-12-31'
-    end_date = f'{int(year)+1}-01-01'
-    date_filter = f'date>"{start_date}" date<"{end_date}"'
+    if news_source_filter != '':
+        news_source_filter = f'pageUrl:"{news_source_filter}"'
+
+    if text_filter != '':
+        text_filter = f'text:"{news_source_filter}"'
+
+    if year is not None:
+        start_date = f'{int(year)-1}-12-31'
+        end_date = f'{int(year)+1}-01-01'
+        date_filter = f'date>"{start_date}" date<"{end_date}"'
+    else:
+        date_filter = ''
 
     sort_by = 'sortBy:date'
 
-    query = ' '.join([type_filter, language_filter, org_filter, source_filter, date_filter, sort_by])
+    query = ' '.join([type_filter, language_filter, org_filter, news_source_filter, text_filter, date_filter, sort_by])
     return query
 
 

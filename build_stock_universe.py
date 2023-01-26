@@ -15,13 +15,16 @@ r1000_list = [s3_helpers.get_etf_holdings('IWB', biz_eomonth)[['asofdate', 'tick
 r1000 = pd.concat(r1000_list).dropna()
 r1000_ticker_list = r1000['ticker'].str.upper().drop_duplicates().to_list()
 
+# iex tie-in was originall used, but no longer necessary
+# -------------------------------------------------------------
 # for each ticker, 1) request company info from iex api; 2) save response to local dir (defined in config.py)
 iex_api.get_companyinfo_and_save(list_of_tickers=r1000_ticker_list,
                                  save_to_dir=config.Iex.IWS_COMPANY_OUTPUT_DIR,
                                  update_existing=False)
 # load iex company info from local dir
 r1000_info_iex = iex_api.load_company_info()
-
+r1000_info_iex.to_csv('data/iex_r1000_company_info.csv',index=False)
+# -------------------------------------------------------------
 # for each ticker search kg
 diffbot_api.search_org_and_save(list_of_tickers=r1000_ticker_list,
                                 save_to_dir=config.Diffbot.KG_ORG_OUTPUT_DIR,
