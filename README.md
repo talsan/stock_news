@@ -2,6 +2,8 @@
 Leveraging [Diffbot's powerful Knowledge Graph](https://www.diffbot.com) to collect news from a pre-defined set of sources (e.g. wsj.com)
 and a pre-defined set of companies (Russell 1000).
 
+![Diffbot Example](https://github.com/talsan/stock_news/blob/master/assets/diffbot_example.PNG)
+
 ## Process Details
 1. `build_stock_universe.py` -- Build a Mapped Universe
     1. Get R1000 Tickers from iShares holdings
