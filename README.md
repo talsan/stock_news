@@ -1,8 +1,5 @@
 # Collecting Stock News History using Diffbot
-Set of processes to collect news articles for the R1000, using Diffbot's Knowledge Graph
-
-## Process Overview
-Levearing [Diffbot's powerful Knowledge Graph](https://www.diffbot.com) to collect news from a pre-defined set of sources (e.g. wsj.com)
+Leveraging [Diffbot's powerful Knowledge Graph](https://www.diffbot.com) to collect news from a pre-defined set of sources (e.g. wsj.com)
 and a pre-defined set of companies (Russell 1000).
 
 ## Process Details
@@ -24,10 +21,3 @@ news_sources = ['bloomberg.com', 'wsj.com', 'reuters.com', 'barrons.com', 'nytim
 'marketwatch.com', 'ft.com', 'finance.yahoo.com', 'apnews.com', 'cnn.com',
 'foxnews.com', 'foxbusiness.com']
 ```
-
-## Benefits of Diffbot and Other Observations
-Original plan was to use eodhistoricaldata.com, IEX, Tiingo, etc. for news. Appears they mainly have feeds from bloomberg.com and/or Yahoo! News. 
-Other vendors only provided snippets/headlines. These options felt okay, but incomplete.  Other, more complete sources were very costly.
-
-Diffbot's knowledge graph is an incredibly powerful tool and I was able to get a Research License by providing details 
-about the research project and avenue for publication (CFA Paper discussing these methods/data).
